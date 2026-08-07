@@ -1,0 +1,34 @@
+{
+  "name": "foreground",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.1",
+    "@tweenjs/tween.js": "^25.0.0",
+    "@vueuse/core": "^13.6.0",
+    "@wangeditor/editor-for-vue": "^5.1.12",
+    "axios": "^1.11.0",
+    "element-plus": "^2.10.4",
+    "gsap": "^3.13.0",
+    "konva": "^10.2.5",
+    "pdfjs-dist": "^3.4.120",
+    "pinia": "^3.0.3",
+    "sass": "^1.89.2",
+    "three": "^0.178.0",
+    "three.js": "^0.77.1",
+    "vue": "^3.5.17",
+    "vue-konva": "^3.4.0",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@types/vue-router": "^2.0.0",
+    "@vitejs/plugin-vue": "^6.0.0",
+    "vite": "^7.0.5"
+  }
+}

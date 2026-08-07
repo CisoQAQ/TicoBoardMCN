@@ -1,0 +1,11 @@
+// 导入ElementPlus的默认样式
+@import "element-plus/theme-chalk/index.css";
+
+// 自定义变量
+:root {
+  --el-color-primary: #165DFF;
+  --el-color-success: #00B42A;
+  --el-color-warning: #FF7D00;
+  --el-color-danger: #F53F3F;
+  --el-color-info: #86909C;
+}    

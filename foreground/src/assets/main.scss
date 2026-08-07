@@ -1,0 +1,60 @@
+// src/styles/_variables.scss
+// ================= 核心主题色（#007aff 衍生）=================
+$primary-color: #007aff;       // 主色：iOS经典蓝（核心）
+$primary-light: #479cff;      // 浅主色：hover/淡背景（亮度+30%）
+$primary-lighter: #e8f3ff;    // 超浅主色：激活背景/高亮（透明度80%）
+$primary-dark: #0066e0;       // 深主色：active/边框/按压（亮度-10%）
+$primary-trans: rgba(0, 122, 255, 0.2); // 透明主色：遮罩/悬浮层
+
+// ================= 画笔专属配色（继承主色，统一样式）=================
+$brush-default-color: $primary-color;   // 画笔默认色：主色（核心）
+$brush-highlight-color: $primary-light; // 画笔高亮色：浅主色
+$brush-trans-color: $primary-trans;     // 画笔透明色：荧光笔/淡绘
+$brush-border-color: $primary-dark;     // 画笔边框色：深主色（如需画笔描边）
+
+// ================= 辅助功能色（和主色协调，低饱和不冲突）=================
+$success-color: #34c759;       // 成功色：iOS原生绿（和蓝调适配）
+$error-color: #ff3b30;         // 错误色：iOS原生红（高对比，警示明显）
+$warning-color: #ff9500;       // 警告色：iOS原生橙（温和警示，不刺眼）
+$info-color: #009688;          // 信息色：青绿色（补充提示，和主色互补）
+
+// ================= 中性色（冷灰调，适配蓝调主题，分阶清晰）=================
+$white: #ffffff;               // 纯白：画布背景/卡片/工具栏
+$gray-50: #f8f9fa;             // 浅灰50：页面背景
+$gray-100: #f2f3f5;            // 浅灰100：分割线/淡背景
+$gray-200: #e5e6eb;            // 浅灰200：边框/普通分割线
+$gray-300: #c9cacc;            // 中灰300：禁用状态/浅描边
+$gray-400: #86868b;            // 中灰400：次要文字/辅助说明
+$gray-500: #515154;            // 深灰500：常规文字/标签
+$gray-600: #333333;            // 深灰600：主要文字/标题
+$black: #000000;               // 纯黑：重要标题/强对比文字
+
+// ================= 全局CSS变量（注入:root，支持脚本/行内样式/Element Plus）=================
+:root {
+  // 主题色 CSS 变量（覆盖Element Plus原生主色）
+  --el-color-primary: #{$primary-color};
+  --primary-color: #{$primary-color};
+  --primary-light: #{$primary-light};
+  --primary-lighter: #{$primary-lighter};
+  --primary-dark: #{$primary-dark};
+  --primary-trans: #{$primary-trans};
+  // 画笔专属 CSS 变量
+  --brush-default-color: #{$brush-default-color};
+  --brush-highlight-color: #{$brush-highlight-color};
+  --brush-trans-color: #{$brush-trans-color};
+  // 辅助功能色 CSS 变量
+  --success-color: #{$success-color};
+  --error-color: #{$error-color};
+  --warning-color: #{$warning-color};
+  --info-color: #{$info-color};
+  // 中性色 CSS 变量（全阶）
+  --white: #{$white};
+  --gray-50: #{$gray-50};
+  --gray-100: #{$gray-100};
+  --gray-200: #{$gray-200};
+  --gray-300: #{$gray-300};
+  --gray-400: #{$gray-400};
+  --gray-500: #{$gray-500};
+  --gray-600: #{$gray-600};
+  --black: #{$black};
+}

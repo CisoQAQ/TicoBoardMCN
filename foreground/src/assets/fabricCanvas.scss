@@ -1,0 +1,65 @@
+@import '../assets/main.scss';
+.fabric-canvas-viewport {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden !important;
+  position: relative;
+  background: #ffffff;
+  margin: 0;
+  padding: 0;
+}
+.canvas-toolbar {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 999;
+  display: flex;
+  gap: 8px;
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+}
+.canvas-toolbar:hover {
+  opacity: 1;
+}
+.mode-switch-btn {
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #666;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.mode-switch-btn:hover {
+  background: #f8f8f8;
+  border-color: #bbb;
+}
+.mode-switch-btn.active {
+  background: #666;
+  color: #ffffff;
+  border-color: #666;
+}
+.mode-switch-btn:focus {
+  outline: none;
+  box-shadow: none;
+}
+canvas {
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  border: none;
+  outline: none;
+  image-rendering: auto;
+}
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+body {
+  overflow: hidden;
+  background: #ffffff;
+}
