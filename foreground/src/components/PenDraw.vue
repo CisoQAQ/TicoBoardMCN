@@ -1,6 +1,4 @@
-<template>
-  <div style="display: none"></div>
-</template>
+<template />
 
 <script setup>
 import { shallowRef, watch, onUnmounted } from 'vue';

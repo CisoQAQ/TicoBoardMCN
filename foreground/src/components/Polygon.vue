@@ -1,6 +1,4 @@
-<template>
-  <div style="display: none"></div>
-</template>
+<template />
 
 <script setup>
 import { shallowRef, watch, onUnmounted } from 'vue';
@@ -29,6 +27,11 @@ let transformer = null;
 let measureLabel = null;
 let rafId = null;
 
+let radiusAnchor = null;
+let radiusBadge = null;
+let _radiusDragging = false;
+let _radiusShape = null;
+
 const EVENT_NS = '.shapeDraw';
 
 const MIN_SIZE = 4;
@@ -40,15 +43,11 @@ const TOOL_MAP = {
   rect: 'rect',
   rectangle: 'rect',
   square: 'square',
-
   triangle: 'triangle',
   rhombus: 'rhombus',
   pentagon: 'pentagon',
   hexagon: 'hexagon',
-
   circle: 'circle',
-  Circle: 'circle',
-
   line: 'line',
   'line-or': 'line',
 };
@@ -75,6 +74,8 @@ watch(
     initTransformer();
     initMeasureLabel();
     bindEvents();
+
+    stage.on('selectionChange', onSelectionChange);
   },
   {
     immediate: true,
@@ -134,7 +135,7 @@ function isShapeTool() {
  * 返回 'triangle'
  */
 function getActiveShapeType() {
-  const shapeType = toolStore.shapeConfig?.type || 'rectangle';
+  const shapeType = (toolStore.shapeConfig?.type || 'rectangle').toLowerCase();
 
   return TOOL_MAP[shapeType] || 'rect';
 }
@@ -162,11 +163,14 @@ function bindEvents() {
   stage.on(`mousemove${EVENT_NS}`, onMouseMove);
   stage.on(`mouseup${EVENT_NS}`, onMouseUp);
   stage.on(`mouseleave${EVENT_NS}`, onMouseUp);
+
+  window.addEventListener('keydown', handleKeyDown);
 }
 
 function unbindEvents() {
   if (!stage) return;
   stage.off(EVENT_NS);
+  window.removeEventListener('keydown', handleKeyDown);
 }
 
 function initTransformer() {
@@ -177,8 +181,9 @@ function initTransformer() {
     borderStrokeWidth: 1,
     anchorStroke: '#fff',
     anchorFill: '#4285f4',
-    anchorSize: 7,
+    anchorSize: 8,
     rotateEnabled: true,
+    rotateAnchorOffset: 30,
     ignoreStroke: false,
   });
 
@@ -200,19 +205,31 @@ function initMeasureLabel() {
   layer.add(measureLabel);
 }
 
+function handleKeyDown(e) {
+  const key = e.key;
+  if (key !== 'Delete' && key !== 'Backspace') return;
+
+  const tag = (e.target?.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || e.target?.isContentEditable) return;
+  if (!transformer) return;
+  const nodes = transformer.nodes();
+  if (!nodes || nodes.length === 0) return;
+  nodes.forEach(node => node.destroy());
+  transformer.nodes([]);
+  stage.fire('selectionChange', { node: null });
+  requestLayerDraw();
+}
+
 /**
  * 获取画布世界坐标。
  * 支持 stage 缩放、平移后的准确坐标。
  */
 function getPointerPosition() {
   if (!stage) return null;
-
   const pointer = stage.getPointerPosition();
   if (!pointer) return null;
-
   const transform = stage.getAbsoluteTransform().copy();
   transform.invert();
-
   return transform.point(pointer);
 }
 
@@ -222,18 +239,14 @@ function getPointerPosition() {
  */
 function isCanvasElementTarget(target) {
   if (!target || !stage) return false;
-
   let current = target;
-
   while (current && current !== stage) {
     if (current.hasName?.('canvas-element')) {
       return true;
     }
-
     if (current.hasName?.('shape')) {
       return true;
     }
-
     current = current.getParent?.();
   }
 
@@ -310,12 +323,9 @@ function onMouseUp() {
     requestLayerDraw();
     return;
   }
-  //绘制模式下不允许拖拽
   shape.draggable(toolStore.activeTool === 'select');
-  // 加 canvas-element，交给 useCanvasStage 统一控制
   shape.name('shape canvas-element');
   bindShapeEvents(shape);
-  // 非 select 模式下，不给 transformer
   if (toolStore.activeTool === 'select') selectShape(shape);
   else clearSelection();
   currentShape.value = null;
@@ -392,6 +402,7 @@ function createShape(type, x, y) {
         ...baseConfig,
         width: 0,
         height: 0,
+        cornerRadius: 0,
       });
 
     case 'rect':
@@ -400,6 +411,7 @@ function createShape(type, x, y) {
         ...baseConfig,
         width: 0,
         height: 0,
+        cornerRadius: 0,
       });
   }
 }
@@ -448,24 +460,219 @@ function updateShape(shape, type, box) {
 
     case 'square': {
       const size = Math.max(box.width, box.height);
+      const maxR = Math.floor(size / 2);
+      const prevR = Number(shape.cornerRadius?.() || 0);
 
       shape.x(box.left);
       shape.y(box.top);
       shape.width(size);
       shape.height(size);
+      shape.cornerRadius(Math.min(prevR, maxR));
 
       break;
     }
 
     case 'rect':
-    default:
+    default: {
+      const prevR = Number(shape.cornerRadius?.() || 0);
+      const maxR = Math.floor(Math.min(box.width, box.height) / 2);
+
       shape.x(box.left);
       shape.y(box.top);
       shape.width(box.width);
       shape.height(box.height);
+      shape.cornerRadius(Math.min(prevR, maxR));
 
       break;
+    }
   }
+}
+
+function isRectShape(shape) {
+  return shape && shape.getClassName && shape.getClassName() === 'Rect';
+}
+
+function destroyRadiusAnchor() {
+  if (radiusAnchor) {
+    radiusAnchor.off('.radiusCtrl');
+    radiusAnchor.remove();
+    radiusAnchor.destroy();
+    radiusAnchor = null;
+  }
+  if (radiusBadge) {
+    radiusBadge.remove();
+    radiusBadge.destroy();
+    radiusBadge = null;
+  }
+  _radiusShape = null;
+  _radiusDragging = false;
+}
+
+function ensureRadiusAnchor() {
+  if (!layer) return null;
+  if (!radiusAnchor) {
+    const outerCircle = new Konva.Circle({
+      x: 0,
+      y: 0,
+      radius: 10,
+      fill: 'transparent',
+      stroke: '#4285f4',
+      strokeWidth: 1.2,
+    });
+    const innerCircle = new Konva.Circle({
+      x: 0,
+      y: 0,
+      radius: 5,
+      fill: '#4285f4',
+      stroke: '#ffffff',
+      strokeWidth: 2,
+    });
+    radiusAnchor = new Konva.Group({
+      x: 0,
+      y: 0,
+      name: '__radius_anchor__',
+      draggable: true,
+    });
+    radiusAnchor.add(outerCircle);
+    radiusAnchor.add(innerCircle);
+    layer.add(radiusAnchor);
+
+    radiusBadge = new Konva.Label({
+      x: 0,
+      y: 0,
+      listening: false,
+      opacity: 0,
+      name: '__radius_badge__',
+    });
+    radiusBadge.add(
+      new Konva.Tag({
+        fill: '#298fff',
+        cornerRadius: 10,
+        lineJoin: 'round',
+      })
+    );
+    const badgeText = new Konva.Text({
+      text: '0',
+      fontSize: 13,
+      fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+      fill: '#ffffff',
+      padding: 10,
+      align: 'center',
+    });
+    radiusBadge.add(badgeText);
+    layer.add(radiusBadge);
+
+    const showBadge = () => {
+      if (!radiusBadge) return;
+      radiusBadge.stop && radiusBadge.stop();
+      radiusBadge.opacity(1);
+    };
+    const hideBadge = () => {
+      if (!radiusBadge) return;
+      radiusBadge.stop && radiusBadge.stop();
+      radiusBadge.to({
+        opacity: 0,
+        duration: 0.2,
+      });
+    };
+
+    radiusAnchor.on('mousedown.radiusCtrl touchstart.radiusCtrl', e => {
+      _radiusDragging = true;
+      e.cancelBubble = true;
+      showBadge();
+    });
+    radiusAnchor.on('dragmove.radiusCtrl', e => {
+      if (!_radiusShape) return;
+      e.cancelBubble = true;
+      applyRadiusFromAnchor();
+    });
+    radiusAnchor.on('mouseenter.radiusCtrl', () => {
+      showBadge();
+    });
+    radiusAnchor.on('mouseleave.radiusCtrl', () => {
+      if (!_radiusDragging) hideBadge();
+    });
+    const onEnd = () => {
+      if (_radiusDragging) {
+        _radiusDragging = false;
+        setTimeout(hideBadge, 250);
+      }
+    };
+    radiusAnchor.on('dragend.radiusCtx mouseup.radiusCtx touchend.radiusCtx', onEnd);
+  }
+  return radiusAnchor;
+}
+
+function getRectWorldBox(shape) {
+  if (!shape) return null;
+  const w = Math.max(0, Number(shape.width?.() || 0));
+  const h = Math.max(0, Number(shape.height?.() || 0));
+  const abs = shape.getAbsoluteTransform();
+  const tl = abs.point({ x: Number(shape.x?.() || 0), y: Number(shape.y?.() || 0) });
+  return {
+    left: tl.x,
+    top: tl.y,
+    right: tl.x + w,
+    bottom: tl.y + h,
+    width: w,
+    height: h,
+  };
+}
+
+function relayoutRadiusAnchor() {
+  const shape = _radiusShape;
+  if (!shape || !layer) {
+    destroyRadiusAnchor();
+    return;
+  }
+  ensureRadiusAnchor();
+  const anchor = radiusAnchor;
+  const badge = radiusBadge;
+  if (!anchor || !badge) return;
+  const box = getRectWorldBox(shape);
+  if (!box) return;
+  const r = Number(shape.cornerRadius?.() || 0);
+  const maxR = Math.max(0, Math.floor(Math.min(box.width, box.height) / 2));
+  const safeR = Math.min(Math.max(0, r), maxR);
+
+  const anchorX = box.left + safeR + Math.max(6, Math.floor(Math.min(box.width, box.height) * 0.04));
+  const anchorY = box.top + Math.max(0, safeR);
+
+  anchor.x(anchorX);
+  anchor.y(anchorY);
+  anchor.moveToTop();
+
+  const badgeText = badge.getText?.();
+  if (badgeText) badgeText.text(`${Math.round(safeR)}`);
+  const bw = badge.getWidth ? badge.getWidth() : 40;
+  badge.x(anchorX - Math.floor(bw / 2));
+  badge.y(anchorY + 22);
+  badge.moveToTop();
+}
+
+function applyRadiusFromAnchor() {
+  const shape = _radiusShape;
+  const anchor = radiusAnchor;
+  const badge = radiusBadge;
+  if (!shape || !anchor || !layer) return;
+  const box = getRectWorldBox(shape);
+  if (!box) return;
+  const maxR = Math.max(0, Math.floor(Math.min(box.width, box.height) / 2));
+
+  let r = anchor.y() - box.top;
+  if (r < 0) r = 0;
+  if (r > maxR) r = maxR;
+  r = Math.round(r);
+
+  shape.cornerRadius(r);
+  if (badge) {
+    const badgeText = badge.getText?.();
+    if (badgeText) badgeText.text(`${r}`);
+    const bw = badge.getWidth ? badge.getWidth() : 40;
+    badge.x(anchor.x() - Math.floor(bw / 2));
+    badge.y(anchor.y() + 22);
+  }
+  requestLayerDraw();
 }
 
 function bindShapeEvents(shape) {
@@ -478,10 +685,46 @@ function bindShapeEvents(shape) {
 
   shape.on('dragstart dragmove dragend', e => {
     e.cancelBubble = true;
+    if (e.type === 'dragstart') {
+      stage.fire('toolbarVisibleChange', { visible: false });
+      destroyRadiusAnchor();
+    } else if (e.type === 'dragmove') {
+      if (_radiusShape === shape && isRectShape(shape)) {
+        relayoutRadiusAnchor();
+      }
+    } else if (e.type === 'dragend') {
+      stage.fire('toolbarVisibleChange', { visible: true });
+      if (_radiusShape === shape && isRectShape(shape)) {
+        relayoutRadiusAnchor();
+      }
+    }
   });
 
   shape.on('transformstart transform transformend', e => {
     e.cancelBubble = true;
+    if (e.type === 'transformstart') {
+      stage.fire('toolbarVisibleChange', { visible: false });
+      destroyRadiusAnchor();
+    } else if (e.type === 'transformend') {
+      stage.fire('toolbarVisibleChange', { visible: true });
+      if (isRectShape(shape)) {
+        const w = Math.max(0, Number(shape.width?.() || 0));
+        const h = Math.max(0, Number(shape.height?.() || 0));
+        const maxR = Math.floor(Math.min(w, h) / 2);
+        const prevR = Number(shape.cornerRadius?.() || 0);
+        shape.cornerRadius(Math.max(0, Math.min(prevR, maxR)));
+        if (transformer && transformer.nodes().indexOf(shape) >= 0) {
+          _radiusShape = shape;
+          relayoutRadiusAnchor();
+        }
+      }
+    }
+  });
+
+  shape.on('destroy', () => {
+    if (_radiusShape === shape) {
+      destroyRadiusAnchor();
+    }
   });
 }
 
@@ -526,6 +769,15 @@ function selectShape(shape) {
   transformer.nodes([shape]);
   transformer.moveToTop();
 
+  if (isRectShape(shape)) {
+    _radiusShape = shape;
+    relayoutRadiusAnchor();
+  } else {
+    _radiusShape = null;
+    destroyRadiusAnchor();
+  }
+
+  stage.fire('selectionChange', { node: shape });
   requestLayerDraw();
 }
 
@@ -533,6 +785,33 @@ function clearSelection() {
   if (!transformer) return;
 
   transformer.nodes([]);
+  _radiusShape = null;
+  destroyRadiusAnchor();
+  stage.fire('selectionChange', { node: null });
+}
+
+function onSelectionChange(e) {
+  if (!e || !e.node) {
+    if (transformer && transformer.nodes().length > 0) {
+      transformer.nodes([]);
+    }
+    _radiusShape = null;
+    destroyRadiusAnchor();
+    requestLayerDraw();
+    return;
+  }
+  const node = e.node;
+  if (transformer && transformer.nodes().indexOf(node) < 0) {
+    transformer.nodes([node]);
+  }
+  if (isRectShape(node)) {
+    _radiusShape = node;
+    relayoutRadiusAnchor();
+  } else {
+    _radiusShape = null;
+    destroyRadiusAnchor();
+  }
+  requestLayerDraw();
 }
 
 function getShapeClientBox(shape) {
@@ -562,6 +841,10 @@ function requestLayerDraw() {
 onUnmounted(() => {
   unbindEvents();
 
+  if (stage) {
+    stage.off('selectionChange', onSelectionChange);
+  }
+
   if (rafId) {
     cancelAnimationFrame(rafId);
     rafId = null;
@@ -571,6 +854,8 @@ onUnmounted(() => {
     measureLabel.destroy();
     measureLabel = null;
   }
+
+  destroyRadiusAnchor();
 
   if (transformer) {
     transformer.destroy();

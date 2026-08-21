@@ -27,15 +27,6 @@
       <div class="shape-info-tip">i</div>
     </div>
 
-    <!-- 风格 -->
-    <!-- <div class="config-section">
-      <div class="config-title">风格</div>
-      <div class="style-switch">
-        <button :class="{ active: toolStore.shapeConfig.style === 'normal' }" @click.stop="setStyle('normal')">正常</button>
-        <button :class="{ active: toolStore.shapeConfig.style === 'sketch' }" @click.stop="setStyle('sketch')">草图</button>
-      </div>
-    </div> -->
-
     <!-- 粗细 -->
     <div class="config-section">
       <div class="config-title">粗细 {{ toolStore.shapeConfig.strokeWidth }}</div>
@@ -60,17 +51,17 @@
           v-for="color in colors"
           :key="color"
           class="color-item"
-          :class="{ active: toolStore.shapeConfig.fillColor === color }"
+          :class="{ active: toolStore.shapeConfig.strokeColor === color }"
           :style="{ background: color }"
-          @click.stop="setFillColor(color)"
+          @click.stop="setStrokeColor(color)"
         >
-          <span v-if="toolStore.shapeConfig.fillColor === color" class="check"> ✓ </span>
+          <span v-if="toolStore.shapeConfig.strokeColor === color" class="check"> ✓ </span>
         </button>
 
         <!-- 自定义颜色选择器入口 -->
         <div class="color-picker-wrap" :class="{ active: isCustomColorActive }" @mousedown.stop @mouseup.stop @click.stop>
           <el-color-picker
-            v-model="currentFillColor"
+            v-model="currentStrokeColor"
             show-alpha
             :predefine="predefineColors"
             @change="handleColorPickerChange"
@@ -90,7 +81,7 @@ const toolStore = useToolStore();
 
 const shapeList = [
   { name: 'rectangle', label: '所有形状', icon: 'rectangle' },
-  { name: 'Circle', label: '圆形', icon: 'Circle' },
+  { name: 'circle', label: '圆形', icon: 'Circle' },
   { name: 'rhombus', label: '菱形', icon: 'rhombus' },
   { name: 'triangle', label: '三角形', icon: 'triangle' },
   { name: 'line-or', label: '线条', icon: 'line-or' },
@@ -154,13 +145,13 @@ const currentShape = computed(() => {
  * Element Plus 颜色选择器绑定值
  * 这里直接和 Pinia 的 shapeConfig.fillColor 联动
  */
-const currentFillColor = computed({
+const currentStrokeColor = computed({
   get() {
-    return toolStore.shapeConfig.fillColor;
+    return toolStore.shapeConfig.strokeColor;
   },
   set(value) {
     if (!value) return;
-    toolStore.setShapeFillColor(value);
+    toolStore.setShapeStrokeColor(value);
   },
 });
 
@@ -169,7 +160,7 @@ const currentFillColor = computed({
  * 此时让彩虹色块显示选中状态
  */
 const isCustomColorActive = computed(() => {
-  return !colors.includes(toolStore.shapeConfig.fillColor);
+  return !colors.includes(toolStore.shapeConfig.strokeColor);
 });
 
 const setShapeType = type => {
@@ -184,18 +175,18 @@ const setStrokeWidth = e => {
   toolStore.setShapeStrokeWidth(Number(e.target.value));
 };
 
-const setFillColor = color => {
-  toolStore.setShapeFillColor(color);
+const setStrokeColor = color => {
+  toolStore.setShapeStrokeColor(color);
 };
 
 const handleColorPickerChange = color => {
   if (!color) return;
-  toolStore.setShapeFillColor(color);
+  toolStore.setShapeStrokeColor(color);
 };
 
 const handleColorPickerActiveChange = color => {
   if (!color) return;
-  toolStore.setShapeFillColor(color);
+  toolStore.setShapeStrokeColor(color);
 };
 
 const handleWheel = e => {
@@ -205,11 +196,14 @@ const handleWheel = e => {
 
 <style lang="scss" scoped>
 .shape-config-panel {
-  position: absolute;
+  position: fixed;
   left: 104px;
   top: 185px;
-  width: 236px;
-  max-height: 70vh;
+  right: 16px;
+  bottom: 16px;
+  width: auto;
+  max-width: 236px;
+  max-height: calc(100vh - 185px - 16px);
   padding: 16px;
   border-radius: 18px;
   background: #f6f6f7;
@@ -220,6 +214,7 @@ const handleWheel = e => {
   overflow-y: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  contain: layout paint;
 
   &::-webkit-scrollbar {
     display: none;

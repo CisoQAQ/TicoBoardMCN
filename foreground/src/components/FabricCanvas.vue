@@ -22,12 +22,14 @@
 
       <v-layer>
         <Polygon :stage-ref="stageRef" name="canvas-element" />
+        <Barcode :stage-ref="stageRef" name="canvas-element" />
       </v-layer>
     </v-stage>
 
     <!-- 画笔绘制逻辑，放在 v-stage 外面 -->
     <PenDraw v-if="stageRef" :stage-ref="stageRef" />
     <!-- <ImageDraw v-if="stageRef" :stage-ref="stageRef" /> -->
+    <ElementToolbar v-if="stageRef" :stage-ref="stageRef" />
 
     <ToolBar />
 
@@ -63,7 +65,9 @@ import { useToolStore } from '../store/tool';
 import CanvasGridBackground from './CanvasGridBackground.vue';
 import ToolBar from './ToolBar.vue';
 import Polygon from './Polygon.vue';
+import Barcode from './Barcode.vue';
 import PenDraw from './PenDraw.vue';
+import ElementToolbar from './ElementToolbar.vue';
 // import ImageDraw from './ImageConfigPanel.vue/index.js';
 
 const toolStore = useToolStore();
@@ -71,8 +75,10 @@ const toolStore = useToolStore();
 const { stageRef, stageConfig, zoomText, canvasCursor, startDrag, stopDrag, onDrag, handleWheel, zoomIn, zoomOut, resetZoom } =
   useCanvasStage();
 
+const drawingToolNames = ['rectangle', 'pen', 'image', 'qrcode', 'barcode'];
+
 const isCanvasMoveMode = computed(() => {
-  return !toolStore.activeTool || toolStore.activeTool === 'select';
+  return !toolStore.activeTool || toolStore.activeTool === 'select' || !drawingToolNames.includes(toolStore.activeTool);
 });
 
 const handleCanvasMouseDown = e => {

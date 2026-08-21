@@ -13,6 +13,8 @@
   <ShapeConfigPanel v-if="toolStore.activeTool === 'rectangle'" />
   <PenConfigPanel v-if="toolStore.activeTool === 'pen'" />
   <ImageConfigPanel v-if="toolStore.activeTool === 'image'" />
+  <QrcodeConfigPanel v-if="toolStore.activeTool === 'qrcode'" />
+  <BarcodeConfigPanel v-if="toolStore.activeTool === 'barcode'" />
 </template>
 
 <script setup>
@@ -21,6 +23,8 @@ import { useToolStore } from '../store/tool';
 import ShapeConfigPanel from './ShapeConfigPanel.vue';
 import PenConfigPanel from './PenConfigPanel.vue';
 import ImageConfigPanel from './ImageConfigPanel.vue';
+import QrcodeConfigPanel from './QrcodeConfigPanel.vue';
+import BarcodeConfigPanel from './BarcodeConfigPanel.vue';
 
 const toolStore = useToolStore();
 const toolBarRef = ref(null);

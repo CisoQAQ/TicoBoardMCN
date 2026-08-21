@@ -242,11 +242,14 @@ const handleWheel = e => {
 
 <style lang="scss" scoped>
 .pen-config-panel {
-  position: absolute;
+  position: fixed;
   left: 104px;
   top: 185px;
-  width: 236px;
-  max-height: 70vh;
+  right: 16px;
+  bottom: 16px;
+  width: auto;
+  max-width: 236px;
+  max-height: calc(100vh - 185px - 16px);
   padding: 14px 12px 16px;
   border-radius: 18px;
   background: #f6f6f7;
@@ -257,6 +260,7 @@ const handleWheel = e => {
   overflow-y: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  contain: layout paint;
 
   &::-webkit-scrollbar {
     display: none;

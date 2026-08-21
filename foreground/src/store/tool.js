@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { QRCODE_DEFAULT_VALUES, BARCODE_DEFAULT_VALUES } from '../utils/constants';
 
 const defaultShapeConfig = () => ({
   type: 'rectangle',
@@ -20,6 +21,14 @@ const defaultPenConfig = () => ({
   dash: [],
 });
 
+const defaultBarcodeConfig = () => ({
+  type: 'qrcode',
+  subtype: 'qrcode',
+  value: QRCODE_DEFAULT_VALUES.qrcode,
+  backgroundColor: '#ffffff',
+  foregroundColor: '#000000',
+});
+
 export const useToolStore = defineStore('tool', {
   state: () => ({
     activeTool: null,
@@ -29,6 +38,10 @@ export const useToolStore = defineStore('tool', {
     shapeConfig: defaultShapeConfig(),
 
     penConfig: defaultPenConfig(),
+
+    barcodeConfig: defaultBarcodeConfig(),
+
+    barcodeDialogVisible: false,
   }),
 
   actions: {
@@ -127,6 +140,66 @@ export const useToolStore = defineStore('tool', {
 
     setPenDash(dash) {
       this.penConfig.dash = Array.isArray(dash) ? dash : [];
+    },
+
+    initDefaultBarcodeConfig() {
+      this.barcodeConfig = defaultBarcodeConfig();
+    },
+
+    updateBarcodeConfig(config) {
+      this.barcodeConfig = {
+        ...this.barcodeConfig,
+        ...config,
+      };
+    },
+
+    setBarcodeType(type) {
+      this.barcodeConfig.type = type;
+      if (type === 'qrcode') {
+        this.barcodeConfig.subtype = this.barcodeConfig.subtype || 'qrcode';
+        this.barcodeConfig.value = QRCODE_DEFAULT_VALUES[this.barcodeConfig.subtype] || QRCODE_DEFAULT_VALUES.qrcode;
+      } else if (type === 'barcode') {
+        this.barcodeConfig.subtype = this.barcodeConfig.subtype || 'code128';
+        this.barcodeConfig.value = BARCODE_DEFAULT_VALUES[this.barcodeConfig.subtype] || BARCODE_DEFAULT_VALUES.code128;
+      }
+    },
+
+    setBarcodeSubtype(subtype, category) {
+      this.barcodeConfig.subtype = subtype;
+      const lookup = category === 'qrcode' ? QRCODE_DEFAULT_VALUES : BARCODE_DEFAULT_VALUES;
+      this.barcodeConfig.value = lookup[subtype] || this.barcodeConfig.value;
+    },
+
+    setBarcodeValue(value) {
+      this.barcodeConfig.value = value;
+    },
+
+    setBarcodeBackgroundColor(color) {
+      this.barcodeConfig.backgroundColor = color;
+    },
+
+    setBarcodeForegroundColor(color) {
+      this.barcodeConfig.foregroundColor = color;
+    },
+
+    setBarcodeDialogVisible(visible) {
+      this.barcodeDialogVisible = visible;
+    },
+
+    openBarcodeDialog(defaultType = 'qrcode') {
+      this.barcodeConfig.type = defaultType;
+      if (defaultType === 'qrcode') {
+        this.barcodeConfig.subtype = 'qrcode';
+        this.barcodeConfig.value = QRCODE_DEFAULT_VALUES.qrcode;
+      } else {
+        this.barcodeConfig.subtype = 'code128';
+        this.barcodeConfig.value = BARCODE_DEFAULT_VALUES.code128;
+      }
+      this.barcodeDialogVisible = true;
+    },
+
+    closeBarcodeDialog() {
+      this.barcodeDialogVisible = false;
     },
   },
 });
