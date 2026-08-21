@@ -203,7 +203,7 @@ const handleWheel = e => {
   bottom: 16px;
   width: auto;
   max-width: 236px;
-  max-height: calc(100vh - 185px - 16px);
+  max-height: calc(100vh - 250px - 16px);
   padding: 16px;
   border-radius: 18px;
   background: #f6f6f7;
