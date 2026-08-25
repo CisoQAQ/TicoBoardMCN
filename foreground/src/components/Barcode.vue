@@ -19,7 +19,7 @@ import { colorToHex, getDrawBox, resolveStage, resolveLayer, getPointerPosition,
 const props = defineProps({
   stageRef: {
     type: Object,
-    required: true,
+    default: null,
   },
 });
 

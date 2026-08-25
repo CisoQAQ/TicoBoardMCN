@@ -8,7 +8,7 @@ import Konva from 'konva';
 const props = defineProps({
   stageRef: {
     type: Object,
-    required: true,
+    default: null,
   },
 });
 

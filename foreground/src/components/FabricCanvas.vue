@@ -71,6 +71,7 @@ import Polygon from './Polygon.vue';
 import Barcode from './Barcode.vue';
 import PenDraw from './PenDraw.vue';
 import ElementToolbar from './ElementToolbar.vue';
+import { decodeBaiduObjUrl, normalizeUrl } from '../api/imageSearch';
 
 const toolStore = useToolStore();
 const canvasContainerRef = ref(null);
@@ -141,8 +142,12 @@ const handleDrop = async e => {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && parsed.type === 'gallery-image') {
-        fullUrl = parsed.fullUrl;
-        thumbUrl = parsed.thumbUrl;
+        thumbUrl = normalizeUrl(decodeBaiduObjUrl(parsed.thumbUrl)) || parsed.thumbUrl;
+        fullUrl = normalizeUrl(decodeBaiduObjUrl(parsed.fullUrl)) || parsed.fullUrl;
+        const isEncrypted = u => typeof u === 'string' && /ippr[a-z]?_z2C|_z&e3B|AzdH3F/i.test(u);
+        if (isEncrypted(fullUrl) && !isEncrypted(thumbUrl)) {
+          fullUrl = thumbUrl;
+        }
         if (parsed.width) hintW = parsed.width;
         if (parsed.height) hintH = parsed.height;
       }
@@ -537,6 +542,15 @@ const addImageToStage = (stage, src, screenPos, containerRect, opt = {}) => {
 
   img.onerror = err => {
     console.warn('加载图片失败:', src, err);
+    if (opt.thumbUrl && opt.thumbUrl !== src && !attemptedFallback) {
+      attemptedFallback = true;
+      const decThumb = normalizeUrl(decodeBaiduObjUrl(opt.thumbUrl)) || opt.thumbUrl;
+      if (decThumb && decThumb !== src && !/ippr[a-z]?_z2C|_z&e3B/i.test(decThumb)) {
+        console.warn('降级使用缩略图URL:', decThumb);
+        img.src = decThumb;
+        return;
+      }
+    }
     isFinalized = true;
     if (pulseTimer) {
       clearTimeout(pulseTimer);
